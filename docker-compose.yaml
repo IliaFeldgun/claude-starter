@@ -1,0 +1,15 @@
+services:
+  claude:
+    build: .
+    working_dir: /workspace
+    stdin_open: true 
+    tty: true        
+    environment:
+      - TERM=xterm-256color
+    volumes:
+      - claude-data:/home/ubuntu
+      - .:/workspace
+    command: claude
+
+volumes:
+  claude-data:

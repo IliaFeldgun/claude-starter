@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+COMPOSE_DIR=~/work/claude-starter
+COMPOSE_PROJECT_NAME=claude
+exec docker compose -p $COMPOSE_PROJECT_NAME -f "$COMPOSE_DIR/docker-compose.yaml" run --build --rm claude "$@"
