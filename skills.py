@@ -107,7 +107,7 @@ if __name__ == "__main__":
     sub = p.add_subparsers(required=True)
     sub.add_parser("clone", help="clone/fetch all skills").set_defaults(fn=clone)
     sub.add_parser("freeze", help="update commits to latest").set_defaults(fn=freeze)
-    install_p = sub.add_parser("install", help="copy skills into .claude/skills")
+    install_p = sub.add_parser("install-skills", help="copy skills into .claude/skills")
     install_p.add_argument("--global", dest="global", action="store_true",
                            help="install into ~/.claude/skills instead of .claude/skills")
     install_p.set_defaults(fn=install)

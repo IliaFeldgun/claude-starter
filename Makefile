@@ -1,4 +1,4 @@
-.PHONY: skills freeze install clean
+.PHONY: skills freeze install-skills clean
 
 skills:
 	python3 skills.py clone
@@ -6,8 +6,8 @@ skills:
 freeze:
 	python3 skills.py freeze
 
-install:
-	python3 skills.py install
+install-skills:
+	python3 skills.py install-skills
 
 clean:
 	python3 skills.py clean
