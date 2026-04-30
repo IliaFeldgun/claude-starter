@@ -14,6 +14,12 @@ RUN curl -fsSL https://raw.githubusercontent.com/tj/n/master/bin/n -o /usr/local
 # Install Claude Code globally
 RUN npm install -g @anthropic-ai/claude-code
 
+# Install uv system-wide and create a shared virtualenv under /opt
+RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin UV_UNMANAGED_INSTALL=1 sh \
+    && uv venv /opt/venv \
+    && chown -R ubuntu:ubuntu /opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
+
 # Switch to the built-in 'ubuntu' user (UID 1000)
 USER ubuntu
 
