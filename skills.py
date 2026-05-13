@@ -70,7 +70,9 @@ def freeze(args):
 
 
 def install(args):
-    if getattr(args, "global"):
+    if args.target:
+        claude_skills = args.target
+    elif getattr(args, "global"):
         claude_skills = os.path.join(os.path.expanduser("~"), ".claude", "skills")
     else:
         claude_skills = os.path.join(os.path.dirname(__file__), ".claude", "skills")
@@ -110,6 +112,7 @@ if __name__ == "__main__":
     install_p = sub.add_parser("install-skills", help="copy skills into .claude/skills")
     install_p.add_argument("--global", dest="global", action="store_true",
                            help="install into ~/.claude/skills instead of .claude/skills")
+    install_p.add_argument("--target", help="install into the given directory (overrides --global)")
     install_p.set_defaults(fn=install)
     sub.add_parser("clean", help="remove cloned dirs").set_defaults(fn=clean)
     args = p.parse_args()
