@@ -17,6 +17,11 @@ RUN npm install -g @anthropic-ai/claude-code
 # Install Helm
 RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 | bash
 
+# Install actionlint (GitHub Actions workflow linter)
+RUN curl -fsSL -o /tmp/dl-actionlint.sh https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash \
+  && bash /tmp/dl-actionlint.sh latest /usr/local/bin \
+  && rm /tmp/dl-actionlint.sh
+
 # Install uv system-wide and create a shared virtualenv under /opt
 RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin UV_UNMANAGED_INSTALL=1 sh \
   && uv venv /opt/venv \
@@ -44,6 +49,7 @@ USER ubuntu
 
 # Install skills directly into /opt/claude/skills (baked into the image).
 COPY --chown=ubuntu:ubuntu skills.py skills.in.yaml skills.yaml /tmp/skills/
+COPY --chown=ubuntu:ubuntu local-skills /tmp/skills/local-skills
 RUN cd /tmp/skills \
   && uv run --with pyyaml python skills.py clone \
   && uv run --with pyyaml python skills.py install-skills --target /opt/claude/skills \

@@ -8,6 +8,7 @@ import subprocess
 import yaml
 
 SKILLS_DIR = os.path.join(os.path.dirname(__file__), ".skills")
+LOCAL_SKILLS_DIR = os.path.join(os.path.dirname(__file__), "local-skills")
 SKILLS_IN_YAML = os.path.join(os.path.dirname(__file__), "skills.in.yaml")
 SKILLS_YAML = os.path.join(os.path.dirname(__file__), "skills.yaml")
 
@@ -85,6 +86,18 @@ def install(args):
             continue
         for entry in os.listdir(skills_src):
             src = os.path.join(skills_src, entry)
+            if not os.path.isfile(os.path.join(src, "SKILL.md")):
+                continue
+            dest = os.path.join(claude_skills, entry)
+            if os.path.islink(dest) or os.path.exists(dest):
+                shutil.rmtree(dest) if os.path.isdir(dest) else os.remove(dest)
+            shutil.copytree(src, dest)
+            print(f"  {entry}: installed")
+
+    if os.path.isdir(LOCAL_SKILLS_DIR):
+        print(f"local-skills: copying from {LOCAL_SKILLS_DIR}")
+        for entry in os.listdir(LOCAL_SKILLS_DIR):
+            src = os.path.join(LOCAL_SKILLS_DIR, entry)
             if not os.path.isfile(os.path.join(src, "SKILL.md")):
                 continue
             dest = os.path.join(claude_skills, entry)
