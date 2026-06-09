@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# clip — copy text to the user's host clipboard via an OSC 52 escape.
+#
+# Why it has to be done this way: the Bash tool's stdout is captured by Claude
+# Code and never reaches the user's terminal, and /dev/tty has no controlling
+# terminal in a tool subprocess. But PID 1 (the claude process) owns the pty
+# that `docker run -t` allocated, and that pty IS the user's terminal. Writing
+# the OSC 52 sequence to that pty lets the terminal emulator copy the payload to
+# the host clipboard. OSC 52 is a non-displaying control sequence, so it does not
+# disturb whatever is currently on screen.
+set -euo pipefail
+
+if [ "$#" -gt 0 ]; then
+  data="$*"
+else
+  data="$(cat)"   # command substitution strips trailing newlines, so a pasted
+fi                # command won't auto-execute on Enter
+
+b64="$(printf '%s' "$data" | base64 | tr -d '\n')"
+
+# Terminals cap OSC 52 payloads near 100000 base64 chars (~74 KB raw).
+if [ "${#b64}" -gt 99000 ]; then
+  echo "clip: payload too large for OSC 52 (${#b64} base64 chars; cap ~99000)" >&2
+  exit 1
+fi
+
+seq="$(printf '\033]52;c;%s\a' "$b64")"
+# Host-side tmux/screen need passthrough wrapping; opt in since we can't detect
+# a multiplexer running outside the container.
+case "${CLAUDE_CLIP_MUX:-}" in
+  tmux)   seq="$(printf '\033Ptmux;\033%s\033\\' "$seq")" ;;
+  screen) seq="$(printf '\033P%s\033\\' "$seq")" ;;
+esac
+
+for term in /proc/1/fd/1 /dev/pts/0; do
+  if printf '%s' "$seq" > "$term" 2>/dev/null; then
+    bytes="$(printf '%s' "$data" | wc -c | tr -d ' ')"
+    echo "clip: copied ${bytes} bytes to the host clipboard via ${term}"
+    exit 0
+  fi
+done
+
+echo "clip: could not reach the user's terminal (no writable pty)" >&2
+exit 1
