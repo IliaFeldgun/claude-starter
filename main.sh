@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
-COMPOSE_DIR=~/work/claude-starter
 COMPOSE_PROJECT_NAME=claude
 export CLAUDE_WORKSPACE="$PWD"
 
 die() { echo "claude: $*" >&2; exit 1; }
+
+# Where this repo (with docker-compose.yaml) lives. install.sh bakes the path
+# into the generated stub via --compose-dir; fall back to resolving our own
+# location so running main.sh directly still works.
+COMPOSE_DIR=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
 
 update=0
 slot=ro
@@ -14,6 +18,8 @@ cmd=()
 args=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --compose-dir) shift; [[ $# -gt 0 ]] || die "--compose-dir needs a path"; COMPOSE_DIR="$1" ;;
+    --compose-dir=*) COMPOSE_DIR="${1#*=}" ;;
     --update) update=1 ;;
     --gh-token) shift; [[ $# -gt 0 ]] || die "--gh-token needs SLOT[:TOKEN]"; register_spec="$1" ;;
     --gh-token=*) register_spec="${1#*=}" ;;
@@ -30,6 +36,7 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
+[[ -f "$COMPOSE_DIR/docker-compose.yaml" ]] || die "no docker-compose.yaml in $COMPOSE_DIR"
 compose=(docker compose -p $COMPOSE_PROJECT_NAME -f "$COMPOSE_DIR/docker-compose.yaml")
 
 # Mount the host's Neovim config (settings/keymaps) read-only into the container
