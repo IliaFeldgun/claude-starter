@@ -1,6 +1,6 @@
 ---
 name: clipboard
-description: Push text to the user's host (Mac) clipboard from inside this container, so they can paste it instead of retyping. Use whenever you want the user to run a shell command, paste a token/URL/snippet, or copy any output you produce — e.g. "here's the command to run", "copy this", "put X on my clipboard", "I can't select that". Works via an OSC 52 escape written to the terminal pty; no host setup required.
+description: Push text to the user's host (Mac) clipboard from inside this container, so they can paste it instead of retyping. Use whenever you want the user to run a shell command, paste a token/URL/snippet, or copy any output you produce — e.g. "here's the command to run", "copy this", "put X on my clipboard", "I can't select that", "clip me", "let me run". Works via an OSC 52 escape written to the terminal pty; no host setup required.
 ---
 
 # clipboard
@@ -43,5 +43,5 @@ Still **show** the text in your reply too — the clipboard is a convenience, no
 
 - **The terminal emulator must support OSC 52 clipboard writes.** iTerm2, Ghostty, kitty, WezTerm, and Alacritty do (some need it enabled in settings). macOS Terminal.app does **not**. If a copy silently doesn't land, this is almost always why — tell the user to check their terminal's clipboard/OSC 52 setting.
 - **One-way.** It can write the clipboard but not read it. To get text *from* the user, ask them to paste it into the chat.
-- **~74 KB cap.** OSC 52 payloads are limited (~99000 base64 chars); `clip` errors out above that rather than truncating silently. For larger content, write a file under `/workspace` (bind-mounted to the host) instead.
+- **~74 KB cap.** OSC 52 payloads are limited (~99000 base64 chars); `clip` errors out above that rather than truncating silently. For larger content, write a file under the mounted project dir (bind-mounted to the host) instead.
 - **Host multiplexers.** If the user runs `claude` inside a host-side tmux/screen, set `CLAUDE_CLIP_MUX=tmux` (or `screen`) so the escape is wrapped for passthrough — and the multiplexer must have clipboard passthrough enabled (`set -g set-clipboard on` for tmux).

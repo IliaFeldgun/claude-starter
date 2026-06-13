@@ -2,6 +2,9 @@
 set -euo pipefail
 COMPOSE_PROJECT_NAME=claude
 export CLAUDE_WORKSPACE="$PWD"
+# Mount (and chdir to) a path named after the launch directory, so cwd and the
+# statusbar reflect the project instead of a fixed mount point.
+export CLAUDE_MOUNT="/WORKSPACE/$(basename "$PWD")"
 
 die() { echo "claude: $*" >&2; exit 1; }
 
@@ -28,7 +31,7 @@ while [[ $# -gt 0 ]]; do
     --issue) slot=issue ;;
     --deploy) slot=deploy ;;
     --ro) slot=ro ;;
-    --nvim|--nvim-dev) cmd=(-w /workspace claude nvim) ;;
+    --nvim|--nvim-dev) cmd=(-w "$CLAUDE_MOUNT" claude nvim) ;;
     --nvim-home) cmd=(-w /home/ubuntu claude nvim) ;;
     --bash) cmd=(-w /home/ubuntu claude bash) ;;
     *) args+=("$1") ;;

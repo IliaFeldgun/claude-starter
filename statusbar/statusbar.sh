@@ -54,8 +54,18 @@ if [ -n "$transcript" ] && [ -f "$transcript" ]; then
 fi
 
 branch=""
-if [ -n "$dir" ] && git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  branch=$(git -C "$dir" branch --show-current 2>/dev/null)
+repo=""
+if [ -n "$dir" ]; then
+  # The launch dir is mounted at a project-named path, so its basename is the
+  # name worth showing — works whether or not it's a git repo. Prefer the git
+  # toplevel basename when inside a worktree (a subdir shouldn't rename it).
+  if git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    branch=$(git -C "$dir" branch --show-current 2>/dev/null)
+    toplevel=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)
+    repo=$(basename "${toplevel:-$dir}")
+  else
+    repo=$(basename "$dir")
+  fi
 fi
 
 # PR number for the current branch, cached by statusbar-pr.sh as "<branch>\t<n>".
@@ -66,20 +76,27 @@ if [ -f "$fp" ] && [ -n "$branch" ] && [ "$(cut -f1 "$fp")" = "$branch" ]; then
   pr=$(cut -f2 "$fp")
 fi
 
-# Two rows so a narrow terminal wraps instead of truncating: identity/location
-# on row 1, model/usage on row 2. Each row is truncated to width independently.
+# Three rows so a narrow terminal wraps instead of truncating: full cwd on row 0
+# (so it's always visible where Claude is operating), identity/location on row 1,
+# model/usage on row 2. Each row is truncated to width independently.
+line0=""
+[ -n "$dir" ] && line0="📂 $dir"
+
 line1=""
 [ -n "$skill" ] && line1="🎯${skill}🎯  "
 [ -n "$mcp" ] && line1="$line1📡${mcp}📡 "
-[ -n "$dir" ] && line1="$line1$(basename "$dir")"
-[ -n "$branch" ] && line1="$line1  ⎇ $branch"
+[ -n "$repo" ] && line1="$line1📦 $repo "
+[ -n "$branch" ] && line1="$line1⎇ $branch"
 [ -n "$pr" ] && line1="$line1 🔀#$pr"
 
 line2=""
 [ -n "$model" ] && line2="$model"
 [ -n "$tok_disp" ] && line2="$line2  $tok_disp"
 
-out="$line1"
-[ -n "$line2" ] && out="$out
-$line2"
+out=""
+for l in "$line0" "$line1" "$line2"; do
+  [ -z "$l" ] && continue
+  if [ -z "$out" ]; then out="$l"; else out="$out
+$l"; fi
+done
 printf '%s' "$out"

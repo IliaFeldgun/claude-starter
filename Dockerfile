@@ -1,5 +1,9 @@
 FROM ubuntu:24.04
 
+# Default interactive shell for anything that consults $SHELL — notably Neovim's
+# :terminal / :! (its built-in fallback is /bin/sh when $SHELL is unset).
+ENV SHELL=/bin/bash
+
 # Install prerequisites
 COPY apt-packages.list /tmp/apt-packages.list
 RUN apt-get update \

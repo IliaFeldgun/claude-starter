@@ -1,14 +1,14 @@
 services:
   claude:
     build: .
-    working_dir: /workspace
+    working_dir: ${CLAUDE_MOUNT:-/repo}
     stdin_open: true 
     tty: true        
     environment:
       - TERM=xterm-256color
     volumes:
       - claude-data:/home/ubuntu
-      - ${CLAUDE_WORKSPACE:-.}:/workspace
+      - ${CLAUDE_WORKSPACE:-.}:${CLAUDE_MOUNT:-/repo}
     command: claude
 
 volumes:
