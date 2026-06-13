@@ -2,7 +2,7 @@
 
 A reproducible Ubuntu container that packages [Claude Code](https://github.com/anthropics/claude-code) with a curated set of skills, language toolchains (Node, Python/uv, Rust, Helm, kubectl, gh, Neovim/LazyVim), a custom statusbar, and the Datadog MCP CLI.
 
-You launch it with a `claude` shim on your `PATH`. The shim runs `docker compose run --rm claude` against this repo, mounting whatever directory you're in at a same-named path inside the container (e.g. `~/code/myproj` → `/myproj`).
+You launch it with a `claude` shim on your `PATH`. The shim runs `docker compose run --rm claude` against this repo, mounting whatever directory you're in at a `/WORKSPACE`-prefixed, same-named path inside the container (e.g. `~/code/myproj` → `/WORKSPACE/myproj`), which becomes the container's working dir.
 
 ## Install
 
@@ -16,7 +16,7 @@ Clone it anywhere — `install.sh` resolves the repo location and bakes it into 
 
 ## Usage
 
-Run `claude` from any directory you want to work in — that directory is mounted at a path named after it (e.g. `~/code/myproj` → `/myproj`), which becomes the container's working dir:
+Run `claude` from any directory you want to work in — that directory becomes the container's working dir (see above):
 
 ```bash
 cd ~/some/project
@@ -55,7 +55,7 @@ If you have a host Neovim config at `~/.config/nvim`, it's mounted read-only int
 
 ## What's shared with your host
 
-- **The mounted project dir** (named after the directory you ran `claude` in, e.g. `/myproj`) is bind-mounted from that directory — edits are instantly visible on both sides, and git operations go through your host working tree.
+- **The mounted project dir** (`/WORKSPACE/<name>`, see above) is bind-mounted from the directory you ran `claude` in — edits are instantly visible on both sides, and git operations go through your host working tree.
 - **The container home dir** (`/home/ubuntu`, including `~/.claude`, `~/.config`, `~/.ssh`, `~/.aws`, gh login, kube contexts, MCP auth) lives on a separate Docker volume. It persists across restarts but is **not** your host home — credentials don't cross over in either direction.
 
 ## Skills
