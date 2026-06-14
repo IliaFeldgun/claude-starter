@@ -27,7 +27,8 @@ Wrapper flags (consumed here, never reach the container):
                       Pick the GitHub token slot for this run (default: ro).
   --nvim, --nvim-dev  Open Neovim on the project instead of Claude Code.
   --nvim-home         Open Neovim in the container home dir.
-  --bash              Open a bash shell in the container.
+  --bash, --bash-dev  Open a bash shell in the container, in the project dir.
+  --bash-home         Open a bash shell in the container home dir.
   --claude-help       Show Claude Code's own --help (from inside the container).
   --compose-dir PATH  Where docker-compose.yaml lives (the installed stub sets
                       this automatically).
@@ -63,7 +64,8 @@ while [[ $# -gt 0 ]]; do
     --ro) slot=ro ;;
     --nvim|--nvim-dev) cmd=(-w "$CLAUDE_MOUNT" claude nvim) ;;
     --nvim-home) cmd=(-w "$CONTAINER_HOME" claude nvim) ;;
-    --bash) cmd=(-w "$CONTAINER_HOME" claude bash) ;;
+    --bash|--bash-dev) cmd=(-w "$CLAUDE_MOUNT" claude bash) ;;
+    --bash-home) cmd=(-w "$CONTAINER_HOME" claude bash) ;;
     # Page Claude Code's help with bat. bat reads a temp file (not a pipe) so the
     # pager's keyboard input stays on the terminal — piping breaks arrow keys.
     --claude-help) cmd=(claude bash -c 'claude --help >/tmp/claude-help.txt 2>&1; bat --paging=always -l txt /tmp/claude-help.txt') ;;
