@@ -48,9 +48,11 @@ branch=""
 repo=""
 head_diff=""
 main_diff=""
+short_hash=""
 if [ -n "$dir" ]; then
   if git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     branch=$(git -C "$dir" branch --show-current 2>/dev/null)
+    short_hash=$(git -C "$dir" rev-parse --short HEAD 2>/dev/null)
     toplevel=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)
     repo=$(basename "${toplevel:-$dir}")
     sum_numstat() { awk -v g="$G" -v r="$R" -v z="$Z" '
@@ -83,6 +85,7 @@ line1=""
 [ -n "$mcp" ] && line1="$line1📡${mcp}📡 "
 [ -n "$repo" ] && line1="$line1📦 $repo "
 [ -n "$branch" ] && line1="$line1⎇ $branch"
+[ -n "$short_hash" ] && line1="$line1 $short_hash"
 [ -n "$main_diff" ] && line1="$line1 Δmain$main_diff"
 [ -n "$pr" ] && line1="$line1 🔀#$pr"
 
