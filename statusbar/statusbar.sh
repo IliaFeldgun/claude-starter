@@ -76,13 +76,12 @@ fi
 
 line0=""
 [ -n "$dir" ] && line0="📂 $dir"
+[ -n "$head_diff" ] && line0="$line0 Δ$head_diff"
 
 line1=""
 [ -n "$skill" ] && line1="🎯${skill}🎯  "
 [ -n "$mcp" ] && line1="$line1📡${mcp}📡 "
-[ -n "$repo" ] && line1="$line1📦 $repo"
-[ -n "$head_diff" ] && line1="$line1 Δ$head_diff"
-[ -n "$repo" ] && line1="$line1 "
+[ -n "$repo" ] && line1="$line1📦 $repo "
 [ -n "$branch" ] && line1="$line1⎇ $branch"
 [ -n "$main_diff" ] && line1="$line1 Δmain$main_diff"
 [ -n "$pr" ] && line1="$line1 🔀#$pr"
