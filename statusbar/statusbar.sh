@@ -55,6 +55,7 @@ fi
 
 branch=""
 repo=""
+diff=""
 if [ -n "$dir" ]; then
   # The launch dir is mounted at a project-named path, so its basename is the
   # name worth showing — works whether or not it's a git repo. Prefer the git
@@ -63,6 +64,12 @@ if [ -n "$dir" ]; then
     branch=$(git -C "$dir" branch --show-current 2>/dev/null)
     toplevel=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)
     repo=$(basename "${toplevel:-$dir}")
+    # Uncommitted line churn vs HEAD (staged + unstaged, tracked files).
+    # numstat gives "<added>\t<removed>\t<path>" per file; sum cols 1 and 2.
+    # Shown only when there's something to show.
+    diff=$(git -C "$dir" diff --numstat HEAD 2>/dev/null | awk '
+      { a += $1; r += $2 }
+      END { if (a || r) printf "+%d/-%d", a, r }')
   else
     repo=$(basename "$dir")
   fi
@@ -88,6 +95,7 @@ line1=""
 [ -n "$repo" ] && line1="$line1📦 $repo "
 [ -n "$branch" ] && line1="$line1⎇ $branch"
 [ -n "$pr" ] && line1="$line1 🔀#$pr"
+[ -n "$diff" ] && line1="$line1 Δ$diff"
 
 line2=""
 [ -n "$model" ] && line2="$model"
