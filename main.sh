@@ -28,12 +28,12 @@ Wrapper flags (consumed here, never reach the container):
   --nvim, --nvim-dev  Open Neovim on the project instead of Claude Code.
   --nvim-home         Open Neovim in the container home dir.
   --bash              Open a bash shell in the container.
+  --claude-help       Show Claude Code's own --help (from inside the container).
   --compose-dir PATH  Where docker-compose.yaml lives (the installed stub sets
                       this automatically).
 
 Anything not listed above is forwarded to the Claude Code CLI inside the
-container. To reach Claude Code's own --help, run: claude --bash, then
-`claude --help` from the shell.
+container. For Claude Code's own --help, run: claude --claude-help.
 EOF
 }
 
@@ -64,6 +64,7 @@ while [[ $# -gt 0 ]]; do
     --nvim|--nvim-dev) cmd=(-w "$CLAUDE_MOUNT" claude nvim) ;;
     --nvim-home) cmd=(-w "$CONTAINER_HOME" claude nvim) ;;
     --bash) cmd=(-w "$CONTAINER_HOME" claude bash) ;;
+    --claude-help) cmd=(claude claude --help) ;;
     *) args+=("$1") ;;
   esac
   shift
