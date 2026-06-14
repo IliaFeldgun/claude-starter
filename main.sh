@@ -64,7 +64,9 @@ while [[ $# -gt 0 ]]; do
     --nvim|--nvim-dev) cmd=(-w "$CLAUDE_MOUNT" claude nvim) ;;
     --nvim-home) cmd=(-w "$CONTAINER_HOME" claude nvim) ;;
     --bash) cmd=(-w "$CONTAINER_HOME" claude bash) ;;
-    --claude-help) cmd=(claude claude --help) ;;
+    # Page Claude Code's help with bat. bat reads a temp file (not a pipe) so the
+    # pager's keyboard input stays on the terminal — piping breaks arrow keys.
+    --claude-help) cmd=(claude bash -c 'claude --help >/tmp/claude-help.txt 2>&1; bat --paging=always -l txt /tmp/claude-help.txt') ;;
     *) args+=("$1") ;;
   esac
   shift
