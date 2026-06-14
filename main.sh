@@ -8,6 +8,33 @@ export CLAUDE_MOUNT="/WORKSPACE/$(basename "$PWD")"
 
 die() { echo "claude: $*" >&2; exit 1; }
 
+usage() {
+  cat >&2 <<'EOF'
+claude — run Claude Code in its container (wrapper around docker compose).
+
+Usage: claude [wrapper flags] [args passed to Claude Code]
+
+Wrapper flags (consumed here, never reach the container):
+  -h, --help          Show this help and exit (does not start the container).
+  --update            Rebuild the image (build --pull --no-cache) before running.
+  --gh-token SLOT[:TOKEN]
+                      Store a GitHub token for SLOT (pr|issue|deploy|ro). Omit
+                      TOKEN (or use '-') to enter it hidden / read it from a pipe.
+  --gh-token-rotate   Prompt for a fresh token for every slot in turn.
+  --pr | --issue | --deploy | --ro
+                      Pick the GitHub token slot for this run (default: ro).
+  --nvim, --nvim-dev  Open Neovim on the project instead of Claude Code.
+  --nvim-home         Open Neovim in the container home dir.
+  --bash              Open a bash shell in the container.
+  --compose-dir PATH  Where docker-compose.yaml lives (the installed stub sets
+                      this automatically).
+
+Anything not listed above is forwarded to the Claude Code CLI inside the
+container. To reach Claude Code's own --help, run: claude --bash, then
+`claude --help` from the shell.
+EOF
+}
+
 # Where this repo (with docker-compose.yaml) lives. install.sh bakes the path
 # into the generated stub via --compose-dir; fall back to resolving our own
 # location so running main.sh directly still works.
@@ -21,6 +48,7 @@ cmd=()
 args=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    -h|--help) usage; exit 0 ;;
     --compose-dir) shift; [[ $# -gt 0 ]] || die "--compose-dir needs a path"; COMPOSE_DIR="$1" ;;
     --compose-dir=*) COMPOSE_DIR="${1#*=}" ;;
     --update) update=1 ;;
