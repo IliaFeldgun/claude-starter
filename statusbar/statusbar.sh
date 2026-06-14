@@ -1,12 +1,14 @@
 #!/bin/sh
-# Custom statusline: prepends the most-recently-loaded skill (recorded by
-# record-skill.sh) to dir / branch / model. A custom statusLine fully replaces
-# the default, so we re-emit the bits worth keeping.
 input=$(cat)
 sid=$(printf '%s' "$input" | jq -r '.session_id // "default"')
 model=$(printf '%s' "$input" | jq -r '.model.display_name // empty')
 dir=$(printf '%s' "$input" | jq -r '.workspace.current_dir // .cwd // empty')
 transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty')
+
+esc=$(printf '\033')
+G="${esc}[38;5;151m"
+R="${esc}[38;5;210m"
+Z="${esc}[0m"
 
 skill=""
 f="$HOME/.claude/state/skill-$sid"
@@ -16,16 +18,6 @@ mcp=""
 fm="$HOME/.claude/state/mcp-$sid"
 [ -f "$fm" ] && mcp=$(cat "$fm")
 
-# Two numbers from the transcript:
-#   total  -- context-window occupancy = input side of the latest assistant turn
-#             (input + cache_read + cache_creation); shown as the %/window.
-#   delta  -- new tokens added since the last real user prompt (input +
-#             cache_creation summed over each assistant turn after it; cache_read
-#             is old context, excluded). Deduped by message.id because one
-#             assistant message spans several transcript lines that repeat usage.
-# A "real prompt" is a user entry that is neither an injected system-reminder
-# (isMeta) nor a tool_result. tail keeps the parse cheap on long transcripts;
-# 400 lines comfortably covers one prompt + its tool calls.
 tok_disp=""
 if [ -n "$transcript" ] && [ -f "$transcript" ]; then
   pair=$(tail -n 400 "$transcript" | jq -R 'fromjson? // empty' 2>/dev/null | jq -rs '
@@ -44,7 +36,6 @@ if [ -n "$transcript" ] && [ -f "$transcript" ]; then
   delta=${pair% *}
   total=${pair#* }
   if [ -n "$total" ] && [ "$total" != "null" ] && [ "$total" -gt 0 ] 2>/dev/null; then
-    # Context window from the model name ("... (1M context)"); default 200k.
     win=200000
     case "$model" in *1M*) win=1000000;; esac
     tok_disp=$(awk -v d="${delta:-0}" -v n="$total" -v w="$win" '
@@ -55,47 +46,46 @@ fi
 
 branch=""
 repo=""
-diff=""
+head_diff=""
+main_diff=""
 if [ -n "$dir" ]; then
-  # The launch dir is mounted at a project-named path, so its basename is the
-  # name worth showing — works whether or not it's a git repo. Prefer the git
-  # toplevel basename when inside a worktree (a subdir shouldn't rename it).
   if git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     branch=$(git -C "$dir" branch --show-current 2>/dev/null)
     toplevel=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)
     repo=$(basename "${toplevel:-$dir}")
-    # Uncommitted line churn vs HEAD (staged + unstaged, tracked files).
-    # numstat gives "<added>\t<removed>\t<path>" per file; sum cols 1 and 2.
-    # Shown only when there's something to show.
-    diff=$(git -C "$dir" diff --numstat HEAD 2>/dev/null | awk '
-      { a += $1; r += $2 }
-      END { if (a || r) printf "+%d/-%d", a, r }')
+    sum_numstat() { awk -v g="$G" -v r="$R" -v z="$Z" '
+      { a += $1; d += $2 }
+      END { if (a || d) printf "%s+%d%s/%s-%d%s", g, a, z, r, d, z }'; }
+    head_diff=$(git -C "$dir" diff --numstat HEAD 2>/dev/null | sum_numstat)
+    base=$(git -C "$dir" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
+    [ -z "$base" ] && base=main
+    if [ -n "$branch" ] && [ "$branch" != "$base" ] \
+       && git -C "$dir" rev-parse --verify "$base" >/dev/null 2>&1; then
+      main_diff=$(git -C "$dir" diff --numstat "$base"...HEAD 2>/dev/null | sum_numstat)
+    fi
   else
     repo=$(basename "$dir")
   fi
 fi
 
-# PR number for the current branch, cached by statusbar-pr.sh as "<branch>\t<n>".
-# Only show it when the cache matches the branch we're actually on.
 pr=""
 fp="$HOME/.claude/state/pr-$sid"
 if [ -f "$fp" ] && [ -n "$branch" ] && [ "$(cut -f1 "$fp")" = "$branch" ]; then
   pr=$(cut -f2 "$fp")
 fi
 
-# Three rows so a narrow terminal wraps instead of truncating: full cwd on row 0
-# (so it's always visible where Claude is operating), identity/location on row 1,
-# model/usage on row 2. Each row is truncated to width independently.
 line0=""
 [ -n "$dir" ] && line0="📂 $dir"
 
 line1=""
 [ -n "$skill" ] && line1="🎯${skill}🎯  "
 [ -n "$mcp" ] && line1="$line1📡${mcp}📡 "
-[ -n "$repo" ] && line1="$line1📦 $repo "
+[ -n "$repo" ] && line1="$line1📦 $repo"
+[ -n "$head_diff" ] && line1="$line1 Δ$head_diff"
+[ -n "$repo" ] && line1="$line1 "
 [ -n "$branch" ] && line1="$line1⎇ $branch"
+[ -n "$main_diff" ] && line1="$line1 Δmain$main_diff"
 [ -n "$pr" ] && line1="$line1 🔀#$pr"
-[ -n "$diff" ] && line1="$line1 Δ$diff"
 
 line2=""
 [ -n "$model" ] && line2="$model"
