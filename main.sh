@@ -5,6 +5,8 @@ export CLAUDE_WORKSPACE="$PWD"
 # Mount (and chdir to) a path named after the launch directory, so cwd and the
 # statusbar reflect the project instead of a fixed mount point.
 export CLAUDE_MOUNT="/WORKSPACE/$(basename "$PWD")"
+# The container's home dir (the claude-data volume mount point).
+CONTAINER_HOME=/home/ubuntu
 
 die() { echo "claude: $*" >&2; exit 1; }
 
@@ -60,8 +62,8 @@ while [[ $# -gt 0 ]]; do
     --deploy) slot=deploy ;;
     --ro) slot=ro ;;
     --nvim|--nvim-dev) cmd=(-w "$CLAUDE_MOUNT" claude nvim) ;;
-    --nvim-home) cmd=(-w /home/ubuntu claude nvim) ;;
-    --bash) cmd=(-w /home/ubuntu claude bash) ;;
+    --nvim-home) cmd=(-w "$CONTAINER_HOME" claude nvim) ;;
+    --bash) cmd=(-w "$CONTAINER_HOME" claude bash) ;;
     *) args+=("$1") ;;
   esac
   shift
