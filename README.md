@@ -7,10 +7,12 @@ You launch it with a `claude` shim on your `PATH`. The shim runs `docker compose
 ## Install
 
 ```bash
-git clone <this repo>
+git clone --recurse-submodules git@github.com:IliaFeldgun/claude-starter.git
 cd claude-starter
 ./install.sh                 # drops a `claude` stub into ~/.local/bin
 ```
+
+Use `--recurse-submodules` so the baked-in plugins (see below) come down with the clone. Already cloned without it? Run `git submodule update --init --recursive`.
 
 Clone it anywhere — `install.sh` resolves the repo location and bakes it into the generated `~/.local/bin/claude` stub, which execs `main.sh` with `--compose-dir <repo>`. Make sure `~/.local/bin` is on your `PATH`. The first `claude` invocation builds the image.
 
@@ -66,17 +68,22 @@ Three ways skills get in:
 - **Local** — anything under `local-skills/<name>/SKILL.md` is baked in (e.g. `uv`, `bat`, `clipboard`, `gh-readonly-token`).
 - **Project-local** — `.claude/skills/<name>/SKILL.md`, picked up only when this repo is the mounted project dir.
 
+## Plugins
+
+Plugin marketplaces under `local-plugins/<group>/<repo>` (each a git submodule with a `.claude-plugin/marketplace.json`) are baked into the image at `/opt/claude/plugins`. On every start, `entrypoint.sh` registers each as a directory-source marketplace and installs its plugins at user scope — idempotently, so they load in every session without your host checkout being mounted. Add one by `git submodule add`-ing the plugin repo under `local-plugins/`, then `claude --update`.
+
 ## Repo layout
 
 ```
 Dockerfile              # image: all tooling installs
 docker-compose.yaml     # mounts + volumes
 nvim/                   # compose overlay + nvim shims for the host config mount
-entrypoint.sh           # runs every start: skill symlink, statusbar wiring, MCP, gh slot
+entrypoint.sh           # runs every start: skill symlink, statusbar wiring, MCP, plugins, gh slot
 main.sh                 # the launcher the `claude` shim execs
 install.sh              # writes the ~/.local/bin/claude stub
 statusbar/              # statusline + hook scripts (skill/mcp/pr indicators)
 local-skills/           # in-tree skills baked into the image
+local-plugins/          # plugin marketplaces (git submodules) baked into the image
 skills.py / skills.*    # upstream skill installer + lockfile
 apt-packages.list       # extra apt packages for the build
 ```

@@ -1,0 +1,4 @@
+[submodule "local-plugins/datadog/claude-code-plugin"]
+	path = local-plugins/datadog/claude-code-plugin
+	url = https://github.com/pinecone-io/datadog-claude-code-plugin.git
+	branch = feat/multi-org-support

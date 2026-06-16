@@ -70,6 +70,32 @@ if command -v datadog_mcp_cli >/dev/null 2>&1 \
     datadog_mcp_cli --custom-domain preprod.datadoghq.com >/dev/null 2>&1 || true
 fi
 
+# Register + install the baked-in local plugin marketplaces (copied to
+# /opt/claude/plugins at build time). Each subtree with .claude-plugin/marketplace.json
+# is a directory-source marketplace. jq-guarded so steady state spawns no `claude`:
+# re-`add` only when the recorded source path drifts (self-heals stale state, e.g.
+# a marketplace that previously pointed at a host checkout), install only what's
+# missing. </dev/null keeps any prompt from blocking startup. jq failures are non-fatal.
+PLUGINS_SRC=/opt/claude/plugins
+MP_DB="$HOME/.claude/plugins/known_marketplaces.json"
+INST_DB="$HOME/.claude/plugins/installed_plugins.json"
+if command -v claude >/dev/null 2>&1 && [ -d "$PLUGINS_SRC" ]; then
+  find "$PLUGINS_SRC" -path '*/.claude-plugin/marketplace.json' 2>/dev/null | while read -r mf; do
+    mp_root=$(dirname "$(dirname "$mf")")
+    mp_name=$(jq -r '.name // empty' "$mf" 2>/dev/null)
+    [ -n "$mp_name" ] || continue
+    have=$(jq -r --arg n "$mp_name" '.[$n].source.path // empty' "$MP_DB" 2>/dev/null)
+    if [ "$have" != "$mp_root" ]; then
+      claude plugin marketplace add "$mp_root" </dev/null >/dev/null 2>&1 || true
+    fi
+    for p in $(jq -r '.plugins[].name // empty' "$mf" 2>/dev/null); do
+      key="${p}@${mp_name}"
+      ins=$(jq -r --arg k "$key" '.plugins | has($k)' "$INST_DB" 2>/dev/null)
+      [ "$ins" = true ] || claude plugin install -s user "$key" </dev/null >/dev/null 2>&1 || true
+    done
+  done
+fi
+
 # Resolve the GitHub token slot chosen by the host launcher into $GH_TOKEN for
 # this session (overrides any in-container `gh auth login`). Missing 'ro' is
 # silent; missing 'pr'/'issue' warns since the user explicitly asked for it.

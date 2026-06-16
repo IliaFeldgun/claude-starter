@@ -129,3 +129,10 @@ RUN cd /tmp/skills \
   && uv run --with pyyaml python skills.py clone \
   && uv run --with pyyaml python skills.py install-skills --target /opt/claude/skills \
   && rm -rf /tmp/skills
+
+# Local plugin marketplaces, baked into the image. Each subtree is a directory-
+# source marketplace (has .claude-plugin/marketplace.json); entrypoint.sh registers
+# and installs them at runtime so they load without the user's host checkout being
+# mounted. .git is stripped — the directory source doesn't need it.
+COPY --chown=ubuntu:ubuntu local-plugins /opt/claude/plugins
+RUN find /opt/claude/plugins -name .git -prune -exec rm -rf {} +
