@@ -1,0 +1,4 @@
+services:
+  claude:
+    volumes:
+      - ${CLAUDE_SCREENSHOTS}:/SCREENSHOTS

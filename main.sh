@@ -25,6 +25,8 @@ Wrapper flags (consumed here, never reach the container):
   --gh-token-rotate   Prompt for a fresh token for every slot in turn.
   --pr | --issue | --deploy | --ro
                       Pick the GitHub token slot for this run (default: ro).
+  --screenshots PATH  Mount host PATH at /SCREENSHOTS in the container (optional;
+                      created on the host if missing).
   --nvim, --nvim-dev  Open Neovim on the project instead of Claude Code.
   --nvim-home         Open Neovim in the container home dir.
   --bash, --bash-dev  Open a bash shell in the container, in the project dir.
@@ -47,6 +49,7 @@ update=0
 slot=ro
 register_spec=""
 rotate=0
+screenshots=""
 cmd=()
 args=()
 while [[ $# -gt 0 ]]; do
@@ -58,6 +61,8 @@ while [[ $# -gt 0 ]]; do
     --gh-token) shift; [[ $# -gt 0 ]] || die "--gh-token needs SLOT[:TOKEN]"; register_spec="$1" ;;
     --gh-token=*) register_spec="${1#*=}" ;;
     --gh-token-rotate) rotate=1 ;;
+    --screenshots) shift; [[ $# -gt 0 ]] || die "--screenshots needs a path"; screenshots="$1" ;;
+    --screenshots=*) screenshots="${1#*=}" ;;
     --pr) slot=pr ;;
     --issue) slot=issue ;;
     --deploy) slot=deploy ;;
@@ -84,6 +89,17 @@ nvim_config="${CLAUDE_NVIM_CONFIG-$HOME/.config/nvim}"
 if [[ -n "$nvim_config" && -d "$nvim_config" ]]; then
   export CLAUDE_NVIM_CONFIG="$nvim_config"
   compose+=(-f "$COMPOSE_DIR/nvim/docker-compose.nvim.yaml")
+fi
+
+# Optionally bind-mount a host directory at /SCREENSHOTS so screenshots can be
+# shared in and out of the container. Resolve to an absolute path (compose reads
+# relative bind sources from the compose-file dir) and create it on the host so
+# it's owned by the user rather than root.
+if [[ -n "$screenshots" ]]; then
+  case "$screenshots" in /*) ;; *) screenshots="$PWD/$screenshots" ;; esac
+  mkdir -p "$screenshots"
+  export CLAUDE_SCREENSHOTS="$screenshots"
+  compose+=(-f "$COMPOSE_DIR/docker-compose.screenshots.yaml")
 fi
 
 if [[ $update -eq 1 ]]; then
