@@ -8,6 +8,7 @@ transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty')
 esc=$(printf '\033')
 G="${esc}[38;5;151m"
 R="${esc}[38;5;210m"
+O="${esc}[38;5;214m"
 Z="${esc}[0m"
 
 skill=""
@@ -76,6 +77,21 @@ if [ -f "$fp" ] && [ -n "$branch" ] && [ "$(cut -f1 "$fp")" = "$branch" ]; then
   pr=$(cut -f2 "$fp")
 fi
 
+# Which GitHub token slot is live this session (written by entrypoint.sh). 'ro'
+# is read-only (green); pr/issue grant writes (orange); deploy is the most
+# powerful (red). A '✗' means the requested slot has no token registered.
+gh=""
+fg="$HOME/.claude/state/gh-slot"
+if [ -f "$fg" ]; then
+  gh_slot=$(cut -f1 "$fg")
+  gh_present=$(cut -f2 "$fg")
+  if [ -n "$gh_slot" ]; then
+    case "$gh_slot" in ro) gh_c="$G";; deploy) gh_c="$R";; *) gh_c="$O";; esac
+    [ "$gh_present" = 1 ] || gh_slot="$gh_slot✗"
+    gh="${gh_c}🔑${gh_slot}${Z}"
+  fi
+fi
+
 line0=""
 [ -n "$dir" ] && line0="📂 $dir"
 [ -n "$head_diff" ] && line0="$line0 Δ$head_diff"
@@ -88,6 +104,7 @@ line1=""
 [ -n "$short_hash" ] && line1="$line1 $short_hash"
 [ -n "$main_diff" ] && line1="$line1 Δmain$main_diff"
 [ -n "$pr" ] && line1="$line1 🔀#$pr"
+[ -n "$gh" ] && line1="$line1 $gh"
 
 line2=""
 [ -n "$model" ] && line2="$model"

@@ -99,12 +99,18 @@ fi
 # Resolve the GitHub token slot chosen by the host launcher into $GH_TOKEN for
 # this session (overrides any in-container `gh auth login`). Missing 'ro' is
 # silent; missing 'pr'/'issue' warns since the user explicitly asked for it.
+# Record "slot<TAB>present" so the statusbar can show which token is actually
+# live (the resolved slot, not the launch flag) — slots aren't otherwise
+# observable from inside the session.
 if [ -n "${CLAUDE_GH_SLOT:-}" ]; then
   f="$GH_TOKEN_DIR/$CLAUDE_GH_SLOT"
+  mkdir -p "$HOME/.claude/state"
   if [ -f "$f" ]; then
     GH_TOKEN=$(cat "$f"); export GH_TOKEN
+    printf '%s\t1' "$CLAUDE_GH_SLOT" > "$HOME/.claude/state/gh-slot"
   else
     unset GH_TOKEN
+    printf '%s\t0' "$CLAUDE_GH_SLOT" > "$HOME/.claude/state/gh-slot"
     if [ "$CLAUDE_GH_SLOT" != ro ]; then
       echo "claude: no token registered for slot '$CLAUDE_GH_SLOT' (run: claude --gh-token $CLAUDE_GH_SLOT:-)" >&2
     fi
