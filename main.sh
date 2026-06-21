@@ -27,6 +27,8 @@ Wrapper flags (consumed here, never reach the container):
                       Pick the GitHub token slot for this run (default: ro).
   --screenshots PATH  Mount host PATH at /SCREENSHOTS in the container (optional;
                       created on the host if missing).
+  --also-mount PATH   Also mount host PATH at /WORKSPACE/<basename> in the
+                      container (in addition to the project dir).
   --nvim, --nvim-dev  Open Neovim on the project instead of Claude Code.
   --nvim-home         Open Neovim in the container home dir.
   --bash, --bash-dev  Open a bash shell in the container, in the project dir.
@@ -50,6 +52,7 @@ slot=ro
 register_spec=""
 rotate=0
 screenshots=""
+also_mount=""
 cmd=()
 args=()
 while [[ $# -gt 0 ]]; do
@@ -63,6 +66,8 @@ while [[ $# -gt 0 ]]; do
     --gh-token-rotate) rotate=1 ;;
     --screenshots) shift; [[ $# -gt 0 ]] || die "--screenshots needs a path"; screenshots="$1" ;;
     --screenshots=*) screenshots="${1#*=}" ;;
+    --also-mount) shift; [[ $# -gt 0 ]] || die "--also-mount needs a path"; also_mount="$1" ;;
+    --also-mount=*) also_mount="${1#*=}" ;;
     --pr) slot=pr ;;
     --issue) slot=issue ;;
     --deploy) slot=deploy ;;
@@ -100,6 +105,17 @@ if [[ -n "$screenshots" ]]; then
   mkdir -p "$screenshots"
   export CLAUDE_SCREENSHOTS="$screenshots"
   compose+=(-f "$COMPOSE_DIR/docker-compose.screenshots.yaml")
+fi
+
+# Optionally bind-mount an extra host directory alongside the project, at
+# /WORKSPACE/<basename> (matching how the project itself is mounted). Resolve to
+# an absolute path so the basename and the compose bind source are unambiguous.
+if [[ -n "$also_mount" ]]; then
+  case "$also_mount" in /*) ;; *) also_mount="$PWD/$also_mount" ;; esac
+  [[ -d "$also_mount" ]] || die "--also-mount: no such directory '$also_mount'"
+  export CLAUDE_ALSO_MOUNT_SRC="$also_mount"
+  export CLAUDE_ALSO_MOUNT_DST="/WORKSPACE/$(basename "$also_mount")"
+  compose+=(-f "$COMPOSE_DIR/docker-compose.also-mount.yaml")
 fi
 
 if [[ $update -eq 1 ]]; then

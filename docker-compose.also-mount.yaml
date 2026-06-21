@@ -1,0 +1,4 @@
+services:
+  claude:
+    volumes:
+      - ${CLAUDE_ALSO_MOUNT_SRC}:${CLAUDE_ALSO_MOUNT_DST}
